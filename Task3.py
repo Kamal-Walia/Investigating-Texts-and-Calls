@@ -92,5 +92,9 @@ def calc_percentage(ratio):
 def get_percentage_of_calls(calls, caller_prefix, receiver_area_code):
   return calc_percentage(get_number_of_calls(calls, caller_prefix, receiver_area_code))
 
-print('The numbers called by people in Bangalore have codes: \n{}'.format('\n'.join(extract_receiver_area_codes(calls, '(080)'))))
+
+numberOfPeopleInBangalore = extract_receiver_area_codes(calls, '(080)')
+numberOfPeopleInBangalore.sort()
+
+print('The numbers called by people in Bangalore have codes: \n{}'.format('\n'.join(numberOfPeopleInBangalore)))
 print('{} percent of calls from fixed lines in Bangalore are calls to other fixed lines in Bangalore.'.format(get_percentage_of_calls(calls, '(080)', '080')))
