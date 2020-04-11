@@ -2,6 +2,7 @@
 Read file into texts and calls.
 It's ok if you don't understand how to read files.
 """
+import re
 import csv
 
 with open('_data/texts.csv', 'r') as f:
@@ -44,57 +45,60 @@ to other fixed lines in Bangalore."
 The percentage should have 2 decimal digits
 """
 
-def get_telephone_type(tel_num):
-  if tel_num.startswith('(0') and tel_num.find(')') != -1:
-    return 'fixed'
-  elif (tel_num.startswith('7') or tel_num.startswith('8') or tel_num.startswith('9')) and ' ' in tel_num:
-    return 'mobile'
-  elif tel_num.startswith('140'):
-    return 'telemarketers'
-  else:
-    return None
 
-def extract_area_code(tel_num, tel_type):
-  if tel_type == 'fixed':
-    return tel_num[1:tel_num.find(')')]
-  elif tel_type == 'mobile':
-    return tel_num[0:4]
-  elif tel_type == 'telemarketers':
-    return '140'
-  else:
-    return None
-
-def extract_receiver_area_codes(calls, caller_prefix, duplicates=False):
-  area_codes = []
-  for call in calls:
-    if call[0].startswith('{}'.format(caller_prefix)): # telephone callers
-      tel_type = get_telephone_type(call[1])
-      area_code = extract_area_code(call[1], tel_type)
-      if area_code:
-        if duplicates:
-          area_codes.append(area_code)
-        else:
-          if area_code not in area_codes:
-            area_codes.append(area_code)
-  return area_codes
-
-def get_number_of_calls(calls, caller_prefix, receiver_area_code):
-  number_of_calls = 0
-  area_codes = extract_receiver_area_codes(calls, caller_prefix, duplicates=True)
-  for area_code in area_codes:
-    if area_code == receiver_area_code:
-      number_of_calls += 1
-  return (number_of_calls, len(area_codes)) # tuple returned (number of calls for specific area code, total number of calls)
-
-def calc_percentage(ratio):
-  return round(ratio[0] / ratio[1] *100, 2)
-
-def get_percentage_of_calls(calls, caller_prefix, receiver_area_code):
-  return calc_percentage(get_number_of_calls(calls, caller_prefix, receiver_area_code))
+def bangalore_area_code(number):
+    return re.match('^\(080\)', number)
 
 
-numberOfPeopleInBangalore = extract_receiver_area_codes(calls, '(080)')
-numberOfPeopleInBangalore.sort()
+def area_code(number):
+    return re.match('^\(.*\)', number)
 
-print('The numbers called by people in Bangalore have codes: \n{}'.format('\n'.join(numberOfPeopleInBangalore)))
-print('{} percent of calls from fixed lines in Bangalore are calls to other fixed lines in Bangalore.'.format(get_percentage_of_calls(calls, '(080)', '080')))
+
+def mobile_prefix(number):
+    return re.match('^\d{4}', number)
+
+
+def extract_area_code(number):
+    code = area_code(number) or mobile_prefix(number)
+    return code[0]
+
+
+def bangalore_outbound_calls(calls):
+    numbers_called = set()
+    from_bangalore_count = 0
+    to_bangalore_count = 0
+
+    for call in calls:
+        caller = call[0]
+        called = call[1]
+        if bangalore_area_code(caller):
+            # key is called number, value is the caller from bangalore
+            from_bangalore_count += 1
+            numbers_called.add(called)
+
+            if bangalore_area_code(called):
+                to_bangalore_count += 1
+
+    percent_within_bangalore = to_bangalore_count / from_bangalore_count
+
+    return numbers_called, percent_within_bangalore
+
+
+def print_answer():
+    print("The numbers called by people in Bangalore have codes:")
+    codes = set()
+    list_of_calls, percent = bangalore_outbound_calls(calls)
+
+    for number in sorted(list_of_calls):
+        area_code = extract_area_code(number)
+        if area_code not in codes:
+            codes.add(area_code)
+            print(area_code)
+
+    percentage = round(percent * 100, 2)
+
+    print(F"{percentage} percent of calls from fixed lines in Bangalore are calls to other fixed lines in Bangalore.")
+    pass
+
+
+print_answer()
